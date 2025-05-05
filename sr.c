@@ -56,29 +56,39 @@ static int A_nextseqnum = 0; /* the next sequence number to be used by the sende
 /*static int windowcount;                the number of packets currently awaiting an ACK */
 
 /* called from layer 5 (application layer), passed the message to be sent to other side */
+
 void A_output(struct msg message)
 {
   struct pkt sendpkt;
   int i;
+  int pckt_dropped = 0;
 
-  /* if not blocked waiting on ACK */
-  if ( (A_nextseqnum-base+SEQSPACE) %SEQSPACE < WINDOWSIZE) { /* wrap around circular buffer */
+   /* if blocked,  window is full */
+   /* wrap around circular buffer */
+   if ( (A_nextseqnum-base+SEQSPACE) %SEQSPACE >= WINDOWSIZE) { 
+
+    if (TRACE > 0)
+      printf("----A: New message arrives, send window is full\n");
+    pckt_dropped++;
+    return;
+   }
+ 
     if (TRACE > 1)
-      printf("----A: New message arrives, send window is not full, send new messge to layer3!\n");
+      printf("----A: New message arrives, send window is not full, send new message to layer3!\n");
 
     /* create packet */
     sendpkt.seqnum = A_nextseqnum;
     sendpkt.acknum = NOTINUSE;
-    for ( i=0; i<20 ; i++ ) 
+    for ( i=0; i<20 ; i++ )
       sendpkt.payload[i] = message.data[i];
-    sendpkt.checksum = ComputeChecksum(sendpkt); 
+    sendpkt.checksum = ComputeChecksum(sendpkt);
 
     /* put packet in window buffer */
-    
+   
     ABuffer[A_nextseqnum] = sendpkt;
     srAcked[A_nextseqnum] = false;
     srSent[A_nextseqnum] = true;
-    
+   
 
     /* send out packet */
     if (TRACE > 0)
@@ -90,14 +100,7 @@ void A_output(struct msg message)
        starttimer(A,RTT);
 
     /* get next sequence number */
-    A_nextseqnum = (A_nextseqnum + 1) % SEQSPACE;  
-  }
-  /* if blocked,  window is full */
-  else {
-    if (TRACE > 0)
-      printf("----A: New message arrives, send window is full\n");
-  }
-
+    A_nextseqnum = (A_nextseqnum + 1) % SEQSPACE;
 }
 
 
