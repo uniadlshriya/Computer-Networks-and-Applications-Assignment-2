@@ -48,6 +48,7 @@ static bool srAcked[SEQSPACE];    /* adding an array to track each packet which 
 
 static int base = 0; /* beginning of the sliding window */ 
 static int A_nextseqnum = 0; /* the next sequence number to be used by the sender */
+static int pckt_dropped = 0;
 
 
 
@@ -61,7 +62,6 @@ void A_output(struct msg message)
 {
   struct pkt sendpkt;
   int i;
-  int pckt_dropped = 0;
 
    /* if blocked,  window is full */
    /* wrap around circular buffer */
@@ -138,10 +138,11 @@ void A_input(struct pkt packet)
           if (TRACE > 0)
         printf ("----A: duplicate ACK received, do nothing!\n");
   }
-  else 
+  else {
     if (TRACE > 0)
       printf ("----A: corrupted ACK is received, do nothing!\n");
-
+    return;
+  }
   
 }
 
@@ -178,6 +179,7 @@ void A_init(void)
   base = 0;
   for (i = 0; i < SEQSPACE; i++) {
        srAcked[i] = false; /* Intializing all packets to false */
+       srSent[i] = false;
   } 
 }
 
@@ -236,8 +238,8 @@ void B_input(struct pkt packet)
   }
   else {
     /* packet is corrupted or out of order resend last ACK */
-    if (TRACE > 0) 
-      printf("----B: packet corrupted or not expected sequence number, resend ACK!\n");
+    if (TRACE > 0) { 
+      printf("----B: packet corrupted or not expected sequence number, resend ACK!\n"); }
   }
 }
 
