@@ -146,7 +146,6 @@ void A_input(struct pkt packet)
 void A_timerinterrupt(void)
 {
   int i=0;
-  int id;
 
   if (TRACE > 0)
     printf("----A: time out,resend packets!\n");

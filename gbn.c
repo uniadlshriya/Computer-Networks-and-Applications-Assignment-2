@@ -216,7 +216,6 @@ void B_input(struct pkt packet)
     if (TRACE > 0)
       printf("----B: packet %d is correctly received, send ACK!\n",packet.seqnum);
     packets_received++;
-
     /* deliver to receiving application */
     tolayer5(B, packet.payload);
 
