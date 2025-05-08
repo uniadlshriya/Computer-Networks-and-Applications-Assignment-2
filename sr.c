@@ -155,9 +155,11 @@ void A_timerinterrupt(void)
     return;
 
   if(!srAcked[windowfirst])  {
-      tolayer3(A, buffer[windowfirst]);
-      if (TRACE > 0)
+    
+    if (TRACE > 0)
        printf ("---A: resending packet %d\n", buffer[windowfirst].seqnum);
+
+    tolayer3(A, buffer[windowfirst]);
      packets_resent++;
   }
   starttimer(A,RTT);
