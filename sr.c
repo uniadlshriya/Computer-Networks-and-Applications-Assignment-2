@@ -145,23 +145,20 @@ void A_input(struct pkt packet)
 /* called when A's timer goes off */
 void A_timerinterrupt(void)
 {
-  int i=0;
 
   if (TRACE > 0)
     printf("----A: time out,resend packets!\n");
 
  /* similar to A_input checking for unacked packed to resend */
- /* sending all unacked packets which are lost or corrupted*/
+ /* resend only the oldest unacked packet */
   if (windowcount == 0)
     return;
 
-  for (i=0; i<WINDOWSIZE; i++) {
-    if(!srAcked[(windowfirst + i)%SEQSPACE])  {
-      tolayer3(A, buffer[(windowfirst + i)%SEQSPACE]);
+  if(!srAcked[windowfirst])  {
+      tolayer3(A, buffer[windowfirst]);
       if (TRACE > 0)
-       printf ("---A: resending packet %d\n", buffer[(windowfirst + i)%SEQSPACE].seqnum);
+       printf ("---A: resending packet %d\n", buffer[windowfirst].seqnum);
      packets_resent++;
-   }
   }
   starttimer(A,RTT);
 
@@ -213,7 +210,7 @@ void B_input(struct pkt packet)
       recvpkt[packet.seqnum] = true;
       recvBuffer[packet.seqnum] = packet;
       packets_received++;
-    } 
+     
 
       /* Deliver in-order packets */
       while(recvpkt[expectedseqnum]) {
@@ -222,7 +219,7 @@ void B_input(struct pkt packet)
         /* update state variables */
         expectedseqnum = (expectedseqnum + 1) % SEQSPACE;  
       }    
-  
+    }
      /* create packet */
      sendpkt.acknum = packet.seqnum;
      sendpkt.seqnum = 0;
