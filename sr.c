@@ -203,13 +203,16 @@ void B_input(struct pkt packet)
   /* if not corrupted can receive outof order */
   if  (!IsCorrupted(packet)) {
 
+    /* counting even duplicate Acks*/
+    packets_received++;
+
     if (TRACE > 0)
       printf("----B: packet %d is correctly received, send ACK!\n",packet.seqnum);
 
     if(!recvpkt[packet.seqnum]) {
       recvpkt[packet.seqnum] = true;
       recvBuffer[packet.seqnum] = packet;
-      packets_received++;
+   
      
 
       /* Deliver in-order packets */
@@ -220,16 +223,16 @@ void B_input(struct pkt packet)
         expectedseqnum = (expectedseqnum + 1) % SEQSPACE;  
       }    
     }
-     /* create packet */
-     sendpkt.acknum = packet.seqnum;
-     sendpkt.seqnum = 0;
+    /* create packet */
+    sendpkt.acknum = packet.seqnum;
+    sendpkt.seqnum = 0;
     
-     /* we don't have any data to send.  fill payload with 0's */
+    /* we don't have any data to send.  fill payload with 0's */
      for ( i=0; i<20 ; i++ ) 
-       sendpkt.payload[i] = '0';  
+      sendpkt.payload[i] = '0';  
 
-     /* computer checksum */
-     sendpkt.checksum = ComputeChecksum(sendpkt); 
+    /* computer checksum */
+    sendpkt.checksum = ComputeChecksum(sendpkt); 
 
     /* send out packet */
     tolayer3 (B, sendpkt);
