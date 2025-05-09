@@ -6,11 +6,18 @@
 
 /* ******************************************************************
    Selective Repeat.
+   Changes done to Selective Repeat. 
+   Unlike GBN, it handles out of order packets. 
+   Acks are not sent for corrupted packets.
+   Also the packets are acked individually, unlike GBN.
+   On timeout only the oldest unacked packet is sent. 
+   SEQSPACE should be atleast 2N to enable window sliding, as in SR it handles out of order packets
+   Receive Buffer is used to buffer the packets and send them out in order to the application
 **********************************************************************/
 
 #define RTT  16.0       /* round trip time.  MUST BE SET TO 16.0 when submitting assignment */
 #define WINDOWSIZE 6    /* the maximum number of buffered unacked packet */
-#define SEQSPACE 12      /* the min sequence space for GBN must be at least windowsize 2n */
+#define SEQSPACE 12      /* the min sequence space for SR must be at least windowsize 2n */
 #define NOTINUSE (-1)   /* used to fill header fields that are not being used */
 
 
@@ -102,7 +109,7 @@ void A_output(struct msg message)
 */
 void A_input(struct pkt packet)
 {
-
+  int preWinFirst;
   /* if received ACK is not corrupted */ 
   if (!IsCorrupted(packet)) {
     if (TRACE > 0)
@@ -111,6 +118,7 @@ void A_input(struct pkt packet)
     total_ACKs_received++;
 
     /* check packet Ack is in current window */
+    /* %SEQSPACE is used for wrapping around */
     if (((packet.acknum - windowfirst + SEQSPACE) % SEQSPACE) < WINDOWSIZE) {
       if (!srAcked[packet.acknum]) {
            if (TRACE > 0)
@@ -118,7 +126,7 @@ void A_input(struct pkt packet)
             new_ACKs++; 
             srAcked[packet.acknum] = true;
           
-
+          preWinFirst = windowfirst;
           /* slide window for consecutive acks */
           while(srAcked[windowfirst] && (windowcount >0)) {
               srAcked[windowfirst] = false;
@@ -127,9 +135,12 @@ void A_input(struct pkt packet)
            }
      
           /* start timer again if there are still more unacked packets in window */
-          stoptimer(A);
-          if (windowcount > 0)
+          /* Added check to ensure that the timer is stopped and started only if the base is acked*/
+          if (packet.acknum == preWinFirst) {
+            stoptimer(A);
+            if (windowcount > 0)
               starttimer(A, RTT);
+          }
        } 
        else
           if (TRACE > 0)
@@ -149,13 +160,13 @@ void A_timerinterrupt(void)
   if (TRACE > 0)
     printf("----A: time out,resend packets!\n");
 
- /* similar to A_input checking for unacked packed to resend */
+
  /* resend only the oldest unacked packet */
   if (windowcount == 0)
     return;
 
   if(!srAcked[windowfirst])  {
-    
+
     if (TRACE > 0)
        printf ("---A: resending packet %d\n", buffer[windowfirst].seqnum);
 
@@ -213,7 +224,7 @@ void B_input(struct pkt packet)
 
     if(!recvpkt[packet.seqnum]) {
       recvpkt[packet.seqnum] = true;
-      recvBuffer[packet.seqnum] = packet;
+      recvBuffer[packet.seqnum] = packet; /* Buffering packet*/
    
      
 
